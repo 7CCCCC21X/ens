@@ -1,24 +1,54 @@
-export default async function handler(req, res) {
-  const { addresses } = req.query;
+// /api/check-ens.js
+import { NextResponse } from 'next/server';
+import fetch from 'node-fetch';
+import * as cheerio from 'cheerio';
 
-  if (!addresses) {
-    return res.status(400).json({ error: "Missing addresses" });
+export const config = {
+  runtime: 'edge',
+};
+
+export default async function handler(req) {
+  const { searchParams } = new URL(req.url);
+  const addressesParam = searchParams.get('addresses');
+
+  if (!addressesParam) {
+    return NextResponse.json({ error: 'Missing addresses' }, { status: 400 });
   }
 
-  const list = addresses.split(',').map(a => a.trim()).filter(a => /^0x[a-fA-F0-9]{40}$/.test(a));
-  const results = {};
+  const addresses = addressesParam
+    .split(',')
+    .map(a => a.trim().toLowerCase())
+    .filter(Boolean);
 
-  for (const address of list) {
+  const results = {};
+  for (const address of addresses) {
     try {
-      const html = await fetch(`https://etherscan.io/address/${address}`).then(res => res.text());
-      const match = html.match(/<title>(.*?) \| Address/i);
-      const title = match?.[1] || '';
-      results[address] = title.toLowerCase().endsWith('.eth') ? title : '';
-    } catch (e) {
-      results[address] = 'Error';
+      const url = `https://etherscan.io/address/${address}`;
+      const res = await fetch(url, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0',
+        },
+      });
+
+      if (res.status !== 200) {
+        results[address] = null;
+        continue;
+      }
+
+      const html = await res.text();
+      const $ = cheerio.load(html);
+      const title = $('title').text();
+
+      if (title.includes('.eth')) {
+        const ens = title.split('|')[0].trim();
+        results[address] = ens;
+      } else {
+        results[address] = null;
+      }
+    } catch (err) {
+      results[address] = null;
     }
   }
 
-  res.setHeader("Cache-Control", "no-store");
-  return res.status(200).json({ results });
+  return NextResponse.json({ results });
 }
