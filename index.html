@@ -14,7 +14,7 @@
       border-radius: 4px;
       cursor: pointer;
     }
-    button:hover { background: #45a049; }
+    button:hover { background-color: #45a049; }
     table { width: 100%; margin-top: 20px; border-collapse: collapse; }
     th, td {
       border: 1px solid #ccc;
@@ -22,6 +22,9 @@
       text-align: left;
     }
     th { background: #f2f2f2; }
+    #footer { margin-top: 30px; text-align: center; color: #888; font-size: 14px; }
+    a { color: #2196F3; text-decoration: none; }
+    a:hover { text-decoration: underline; }
   </style>
 </head>
 <body>
@@ -29,10 +32,15 @@
   <p>每行一个钱包地址：</p>
   <textarea id="input"></textarea><br>
   <button onclick="check()">开始查询</button>
+
   <table id="resultTable" style="display:none;">
     <thead><tr><th>地址</th><th>ENS 域名</th></tr></thead>
     <tbody id="resultBody"></tbody>
   </table>
+
+  <div id="footer">
+    作者推特: <a href="https://twitter.com/0xXIAOc" target="_blank">@0xXIAOc</a>
+  </div>
 
   <script>
     async function check() {
@@ -40,15 +48,23 @@
       const addresses = input.split("\n").map(x => x.trim()).filter(Boolean);
       if (addresses.length === 0) return alert("请输入地址");
 
-      const res = await fetch(`https://ens-c29mgqdso-7ccccc21xs-projects.vercel.app/api/check-ens?addresses=${addresses.join(",")}`);
-      const json = await res.json();
       const tbody = document.getElementById("resultBody");
       tbody.innerHTML = "";
+      document.getElementById("resultTable").style.display = "none";
+
       for (const addr of addresses) {
-        const ens = json.results[addr] || "";
-        const row = `<tr><td>${addr}</td><td>${ens}</td></tr>`;
-        tbody.innerHTML += row;
+        try {
+          const url = `https://ens-c29mgqdso-7ccccc21xs-projects.vercel.app/api/check-ens?addresses=${addr}`;
+          const res = await fetch(url);
+          const json = await res.json();
+          const ens = json.results?.[addr] || '';
+          const row = `<tr><td>${addr}</td><td>${ens}</td></tr>`;
+          tbody.innerHTML += row;
+        } catch (err) {
+          tbody.innerHTML += `<tr><td>${addr}</td><td style="color:red;">查询失败</td></tr>`;
+        }
       }
+
       document.getElementById("resultTable").style.display = "table";
     }
   </script>
