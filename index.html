@@ -6,9 +6,21 @@
   <style>
     body { font-family: sans-serif; padding: 30px; max-width: 800px; margin: auto; }
     textarea { width: 100%; height: 150px; margin-bottom: 20px; }
-    button { padding: 10px 20px; background: #4caf50; color: #fff; border: none; border-radius: 4px; cursor: pointer; }
+    button {
+      padding: 10px 20px;
+      background: #4caf50;
+      color: #fff;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    button:hover { background: #45a049; }
     table { width: 100%; margin-top: 20px; border-collapse: collapse; }
-    th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
+    th, td {
+      border: 1px solid #ccc;
+      padding: 8px;
+      text-align: left;
+    }
     th { background: #f2f2f2; }
   </style>
 </head>
@@ -28,7 +40,7 @@
       const addresses = input.split("\n").map(x => x.trim()).filter(Boolean);
       if (addresses.length === 0) return alert("请输入地址");
 
-      const res = await fetch(`/api/check-ens?addresses=${addresses.join(",")}`);
+      const res = await fetch(`https://ens-c29mgqdso-7ccccc21xs-projects.vercel.app/api/check-ens?addresses=${addresses.join(",")}`);
       const json = await res.json();
       const tbody = document.getElementById("resultBody");
       tbody.innerHTML = "";
