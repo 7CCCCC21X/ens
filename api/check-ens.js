@@ -1,41 +1,29 @@
-// /api/check-ens.js
-import { NextResponse } from 'next/server';
-import fetch from 'node-fetch';
-import * as cheerio from 'cheerio';
-
 export const config = {
-  runtime: 'edge',
+  runtime: 'nodejs'  // ⬅️ 强制使用 Node.js runtime，避免 Edge 报错
 };
 
-export default async function handler(req) {
-  const { searchParams } = new URL(req.url);
-  const addressesParam = searchParams.get('addresses');
+import fetch from 'node-fetch';
+import cheerio from 'cheerio';
 
-  if (!addressesParam) {
-    return NextResponse.json({ error: 'Missing addresses' }, { status: 400 });
+export default async function handler(req, res) {
+  const { addresses } = req.query;
+  if (!addresses) {
+    return res.status(400).json({ error: "Missing addresses parameter" });
   }
 
-  const addresses = addressesParam
-    .split(',')
-    .map(a => a.trim().toLowerCase())
-    .filter(Boolean);
-
   const results = {};
-  for (const address of addresses) {
+  const addressList = addresses.split(',').map(a => a.trim()).filter(Boolean);
+
+  for (const address of addressList) {
     try {
       const url = `https://etherscan.io/address/${address}`;
-      const res = await fetch(url, {
+      const resp = await fetch(url, {
         headers: {
-          'User-Agent': 'Mozilla/5.0',
-        },
+          'User-Agent': 'Mozilla/5.0'
+        }
       });
 
-      if (res.status !== 200) {
-        results[address] = null;
-        continue;
-      }
-
-      const html = await res.text();
+      const html = await resp.text();
       const $ = cheerio.load(html);
       const title = $('title').text();
 
@@ -43,12 +31,12 @@ export default async function handler(req) {
         const ens = title.split('|')[0].trim();
         results[address] = ens;
       } else {
-        results[address] = null;
+        results[address] = '';
       }
-    } catch (err) {
-      results[address] = null;
+    } catch (e) {
+      results[address] = '';
     }
   }
 
-  return NextResponse.json({ results });
+  return res.status(200).json({ results });
 }
